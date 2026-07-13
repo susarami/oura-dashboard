@@ -2,7 +2,7 @@
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 import os
-from models import DailySleep
+from models import DailySleep, DailyActivity, DailyReadiness
 from models import Base, get_engine
 from datetime import datetime
 
@@ -46,11 +46,36 @@ for record in sleep_records:
         restfulness = record["contributors"]["restfulness"],
         timing = record["contributors"]["timing"],
         total_sleep = record["contributors"]["total_sleep"],
+
     )
-    session.add(sleep_obj)
-    session.commit()
+    session.merge(sleep_obj)
 
-print(len(sleep_records), len(readiness_records), len(activity_records))
+for record in activity_records:
+    activity_obj = DailyActivity(
+        day = datetime.strptime(record["day"], "%Y-%m-%d").date(),
+        score = record["score"],
+        steps = record["steps"],
+        high_activity_time = record["high_activity_time"],
+        medium_activity_time = record["medium_activity_time"],
+        low_activity_time = record["low_activity_time"],
+        sedentary_time = record["sedentary_time"],
+    )
+    session.merge(activity_obj)
 
-print(sleep_records[0])
+for record in readiness_records:
+    readiness_obj = DailyReadiness(
+        day = datetime.strptime(record["day"], "%Y-%m-%d").date(),
+        score = record["score"],
+        temperature_deviation = record["temperature_deviation"],
+        recovery_index = record["contributors"]["recovery_index"],
+        hrv_balance = record["contributors"]["hrv_balance"],
+        sleep_regularity = record["contributors"]["sleep_regularity"],
+        resting_heart_rate = record["contributors"]["resting_heart_rate"],
+    )
+    session.merge(readiness_obj)
 
+session.commit()
+
+print(session.query(DailySleep).limit(5).all())
+print(session.query(DailyActivity).limit(5).all())
+print(session.query(DailyReadiness).limit(5).all())
