@@ -1,5 +1,11 @@
+#main
 from dotenv import load_dotenv
 import os
+from models import DailySleep
+from models import Base, get_engine
+
+engine = get_engine()
+Base.metadata.create_all(engine)
 
 load_dotenv()
 token = os.getenv("OURA_TOKEN")
@@ -24,3 +30,6 @@ readiness_records = fetch_oura_data("daily_readiness", "2025-07-01", "2026-07-01
 activity_records = fetch_oura_data("daily_activity", "2025-07-01", "2026-07-01", token)
 
 print(len(sleep_records), len(readiness_records), len(activity_records))
+
+print(sleep_records[0])
+
