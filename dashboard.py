@@ -1,10 +1,19 @@
 #dashboard
+from datetime import timedelta
 from models import get_engine
 import pandas as pd
 import streamlit as st
 
 engine = get_engine()
 sleep_df = pd.read_sql("SELECT * FROM daily_sleep", engine)
+sleep_df["day"] = pd.to_datetime(sleep_df["day"])
+
+def is_previous_day_workday(day):
+    previous_day = day - timedelta(days=1)
+    return previous_day.weekday() in {1, 5, 6}
+
+sleep_df["worked_previous_day"] = sleep_df["day"].apply(is_previous_day_workday)
+
 activity_df = pd.read_sql("SELECT * FROM daily_activity", engine)
 readiness_df = pd.read_sql("SELECT * FROM daily_readiness", engine)
 
@@ -25,3 +34,4 @@ st.header("Readiness")
 st.line_chart(readiness_df.set_index("day")["score"])
 
 print(sleep_df.head())
+print(sleep_df[["day", "worked_previous_day"]].head(10))
