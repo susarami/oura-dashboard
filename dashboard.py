@@ -70,7 +70,7 @@ worked_score = activity_means.loc[True]
 
 col3, col4 = st.columns(2)
 col3.metric("Recovery Time - After Day Off", f"{rested_score:.1f}")
-col4.metric("Recovery Time - After Work Day", f"{worked_score:.1f}", delta = f"{worked_score - rested_score:.1f}")
+col4.metric("Recovery - After Work Day", f"{worked_score:.1f}", delta = f"{worked_score - rested_score:.1f}")
 st.bar_chart(activity_means)
 st.caption(f"t-test: t = {activity_t_stat:.2f}, p = {activity_p_value:.6f}")
 
