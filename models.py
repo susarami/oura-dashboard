@@ -27,6 +27,7 @@ class DailyActivity(Base):
     medium_activity_time = Column(Integer)
     low_activity_time = Column(Integer)
     sedentary_time = Column(Integer)
+    recovery_time = Column(Integer)
 
 class DailyReadiness(Base):
     __tablename__ = 'daily_readiness'

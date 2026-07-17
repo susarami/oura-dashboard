@@ -59,6 +59,7 @@ for record in activity_records:
         medium_activity_time = record["medium_activity_time"],
         low_activity_time = record["low_activity_time"],
         sedentary_time = record["sedentary_time"],
+        recovery_time = record["contributors"]["recovery_time"],
     )
     session.merge(activity_obj)
 
