@@ -80,3 +80,4 @@ session.commit()
 print(session.query(DailySleep).limit(5).all())
 print(session.query(DailyActivity).limit(5).all())
 print(session.query(DailyReadiness).limit(5).all())
+

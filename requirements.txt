@@ -4,3 +4,4 @@ streamlit
 pandas
 python-dotenv
 scipy
+plotly

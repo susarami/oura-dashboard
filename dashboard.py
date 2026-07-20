@@ -4,14 +4,19 @@ from models import get_engine
 import pandas as pd
 import streamlit as st
 from scipy import stats
+import plotly.express as px
 
 engine = get_engine()
 sleep_df = pd.read_sql("SELECT * FROM daily_sleep", engine)
+sleep_df = sleep_df.rename(columns={"score": "sleep_score"})
 sleep_df["day"] = pd.to_datetime(sleep_df["day"])
 
 def is_previous_day_workday(day):
     previous_day = day - timedelta(days=1)
     return previous_day.weekday() in {1, 5, 6}
+
+def is_workday(day):
+    return day.weekday() in {1, 5, 6}
 
 sleep_df["worked_previous_day"] = sleep_df["day"].apply(is_previous_day_workday)
 
@@ -27,8 +32,10 @@ print(sleep_t_stat)
 print(sleep_p_value)
 
 activity_df = pd.read_sql("SELECT * FROM daily_activity", engine)
+activity_df = activity_df.rename(columns={"score": "activity_score"})
 activity_df["day"] = pd.to_datetime(activity_df["day"])
 activity_df["worked_previous_day"] = activity_df["day"].apply(is_previous_day_workday)
+
 activity_worked = activity_df[activity_df["worked_previous_day"] == True]["recovery_time"]
 activity_rested = activity_df[activity_df["worked_previous_day"] == False]["recovery_time"]
 activity_t_stat, activity_p_value = stats.ttest_ind(activity_worked, activity_rested, nan_policy="omit")
@@ -40,8 +47,10 @@ print(activity_t_stat)
 print(activity_p_value)
 
 readiness_df = pd.read_sql("SELECT * FROM daily_readiness", engine)
+readiness_df = readiness_df.rename(columns={"score": "readiness_score"})
 readiness_df["day"] = pd.to_datetime(readiness_df["day"])
 readiness_df["worked_previous_day"] = readiness_df["day"].apply(is_previous_day_workday)
+
 readiness_worked = readiness_df[readiness_df["worked_previous_day"] == True]["resting_heart_rate"]
 readiness_rested = readiness_df[readiness_df["worked_previous_day"] == False]["resting_heart_rate"]
 readiness_t_stat, readiness_p_value = stats.ttest_ind(readiness_worked, readiness_rested, nan_policy="omit")
@@ -84,3 +93,21 @@ col5.metric("Resting Heart Rate - After Day Off", f"{rested_score:.1f}")
 col6.metric("Resting Heart Rate - After Work Day", f"{worked_score:.1f}", delta = f"{worked_score - rested_score:.1f}")
 st.bar_chart(readiness_means)
 st.caption(f"t-test: t = {readiness_t_stat:.2f}, p = {readiness_p_value:.6f}")
+
+
+combined_df = sleep_df.merge(readiness_df, on = "day")
+combined_df = combined_df.merge(activity_df, on = "day")
+combined_df["worked_previous_day"] = combined_df["day"].apply(is_previous_day_workday)
+combined_df = combined_df.drop(columns = ["worked_previous_day_x", "worked_previous_day_y"])
+combined_df["is_workday"] = combined_df["day"].apply(is_workday)
+
+print(combined_df.columns)
+
+correlation_matrix = combined_df.corr(numeric_only = True)
+print(correlation_matrix)
+
+focus_columns = ["is_workday", "steps", "low_activity_time", "sedentary_time"]
+focus_corr = combined_df[focus_columns].corr(numeric_only = True)
+
+fig = px.imshow(focus_corr, text_auto = True, color_continuous_scale = "RdBu", zmin = -1, zmax = 1)
+st.plotly_chart(fig)
