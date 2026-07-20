@@ -40,6 +40,24 @@ On the work day itself, activity is strongly correlated with the day type —
 steps and low-intensity activity time rise, sedentary time drops sharply
 (correlation coefficients of 0.7–0.8 with `is_workday`).
 
+**Does the effect compound after back-to-back shifts (Sat + Sun)?**
+Since two of the three work days fall on consecutive days, days were grouped
+by how many of the previous two days were work days (0, 1, or 2) and
+compared with a one-way ANOVA:
+
+- Recovery time drops in a clear step pattern (99.5 → 98.3 → 95.1) —
+  strongly significant (F = 13.16, p < 0.0001)
+- Sleep score shows a similar but weaker pattern — did not reach
+  significance (F = 2.51, p = 0.083), likely due to limited sample size
+  for the double-shift group (n = 48)
+- Resting heart rate recovery score showed no clear compounding pattern
+  (F = 0.94, p = 0.39)
+
+Recovery time appears to be the metric most sensitive to accumulated
+fatigue from back-to-back shifts; the effect is less conclusive for sleep
+score and not evident for resting heart rate score at this sample size.
+
+
 **Data quality note:** Oura's Rest Mode zeroes out `activity_score` during
 illness. These stretches are detected and treated as missing data rather
 than real low-activity days.
