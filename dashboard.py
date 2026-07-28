@@ -24,6 +24,11 @@ def was_sick(day):
     range3 = day >= pd.Timestamp("2025-11-02") and day <= pd.Timestamp("2025-11-04")
     return range1 or range2 or range3
 
+def consecutive_workdays_before(day):
+    one_day_back = day - timedelta(days=1)
+    two_day_back = day - timedelta(days=2)
+    return is_workday(one_day_back) + is_workday(two_day_back)
+
 sleep_df["worked_previous_day"] = sleep_df["day"].apply(is_previous_day_workday)
 sleep_df["score_7day_avg"] = sleep_df["sleep_score"].rolling(window = 7).mean()
 
@@ -100,7 +105,7 @@ worked_score = activity_means.loc[True]
 
 col3, col4 = st.columns(2)
 col3.metric("Recovery Time - After Day Off", f"{rested_score:.1f}")
-col4.metric("Recovery - After Work Day", f"{worked_score:.1f}", delta = f"{worked_score - rested_score:.1f}")
+col4.metric("Recovery Time - After Work Day", f"{worked_score:.1f}", delta = f"{worked_score - rested_score:.1f}")
 st.bar_chart(activity_means)
 st.caption(f"t-test: t = {activity_t_stat:.2f}, p = {activity_p_value:.6f}")
 
@@ -121,7 +126,7 @@ combined_df = combined_df.merge(activity_df, on = "day")
 combined_df["worked_previous_day"] = combined_df["day"].apply(is_previous_day_workday)
 combined_df = combined_df.drop(columns = ["worked_previous_day_x", "worked_previous_day_y"])
 combined_df["is_workday"] = combined_df["day"].apply(is_workday)
-
+combined_df["consecutive_workdays_before"] = combined_df["day"].apply(consecutive_workdays_before)
 print(combined_df.columns)
 
 correlation_matrix = combined_df.corr(numeric_only = True)
@@ -133,5 +138,103 @@ focus_corr = combined_df[focus_columns].corr(numeric_only = True)
 fig = px.imshow(focus_corr, text_auto = True, color_continuous_scale = "RdBu", zmin = -1, zmax = 1)
 st.plotly_chart(fig)
 
+#print(combined_df.groupby("consecutive_workdays_before")["sleep_score"].mean())
+#print(combined_df.groupby("consecutive_workdays_before")["sleep_score"].count())
+#
+#group0 = combined_df[combined_df["consecutive_workdays_before"] == 0]["sleep_score"]
+#group1 = combined_df[combined_df["consecutive_workdays_before"] == 1]["sleep_score"]
+#group2 = combined_df[combined_df["consecutive_workdays_before"] == 2]["sleep_score"]
+#
+#combined_f_stat, combined_p_value = stats.f_oneway(group0, group1, group2)
+#print(combined_f_stat)
+#print(combined_p_value)
+
+#print(combined_df.groupby("consecutive_workdays_before")["resting_heart_rate"].mean())
+#print(combined_df.groupby("consecutive_workdays_before")["resting_heart_rate"].count())
+#
+#group0 = combined_df[combined_df["consecutive_workdays_before"] == 0]["resting_heart_rate"]
+#group1 = combined_df[combined_df["consecutive_workdays_before"] == 1]["resting_heart_rate"]
+#group2 = combined_df[combined_df["consecutive_workdays_before"] == 2]["resting_heart_rate"]
+#
+#combined_f_stat, combined_p_value = stats.f_oneway(group0, group1, group2, nan_policy = "omit")
+#print(combined_f_stat)
+#print(combined_p_value)
+
+print(combined_df.groupby("consecutive_workdays_before")["recovery_time"].mean())
+print(combined_df.groupby("consecutive_workdays_before")["recovery_time"].count())
+
+group0 = combined_df[combined_df["consecutive_workdays_before"] == 0]["recovery_time"]
+group1 = combined_df[combined_df["consecutive_workdays_before"] == 1]["recovery_time"]
+group2 = combined_df[combined_df["consecutive_workdays_before"] == 2]["recovery_time"]
+
+combined_f_stat, combined_p_value = stats.f_oneway(group0, group1, group2, nan_policy = "omit")
+print(combined_f_stat)
+print(combined_p_value)
+
+
 print(activity_df["activity_score"].isna().sum())
 print(activity_df[activity_df["activity_score"] == 0])
+
+mondays = combined_df[combined_df["day"].dt.weekday == 0]
+print(mondays[["day", "consecutive_workdays_before"]].head())
+
+st.header("Consecutive Workdays Compounding Effect on Recovery Time")
+compounded_means = combined_df.groupby("consecutive_workdays_before")["recovery_time"].mean()
+col1, col2, col3 = st.columns(3)
+col1.metric("0 Consecutive Work Days", f"{compounded_means[0]:.1f}")
+col2.metric("1 Consecutive Work Days", f"{compounded_means[1]:.1f}", delta = f"{compounded_means.loc[1] - compounded_means[0]:.1f}")
+col2.metric("2 Consecutive Work Days", f"{compounded_means[2]:.1f}", delta = f"{compounded_means.loc[2] - compounded_means[1]:.1f}")
+st.bar_chart(compounded_means)
+st.caption(f"One-way ANOVA: t = {combined_f_stat:.2f}, p = {combined_p_value:.6f}")
+
+sleep_df.to_csv("sleep_df.csv", index = False)
+activity_df.to_csv("activity_df.csv", index = False)
+readiness_df.to_csv("readiness_df.csv", index = False)
+
+st.subheader("Sleep Efficiency: Rolling 7-Day Trend")
+
+query = """
+SELECT
+    day,
+    efficiency,
+    AVG(efficiency) OVER (
+        ORDER BY day
+        ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
+    ) AS rolling_7day_efficiency
+FROM daily_sleep
+ORDER BY day;
+"""
+df = pd.read_sql(query, engine, parse_dates = ["day"])
+df = df.set_index("day")
+
+st.line_chart(df[["efficiency", "rolling_7day_efficiency"]])
+
+st.subheader("Readiness: Day-over-day Change")
+
+readiness_query = """
+SELECT
+    day,
+    score AS readiness_score,
+    score - LAG(score) OVER (ORDER BY day) AS change_from_prev_day
+FROM daily_readiness
+ORDER BY day;
+"""
+
+df_readiness = pd.read_sql(readiness_query, engine, parse_dates = ["day"])
+st.bar_chart(df_readiness.set_index(("day"))["change_from_prev_day"])
+
+st.subheader("Top 10 Worst Recovery Days (by Resting Heart Rate)")
+
+rank_query = """
+SELECT
+    day,
+    resting_heart_rate,
+    RANK() OVER (ORDER BY resting_heart_rate ASC) AS hr_rank
+FROM daily_readiness
+WHERE resting_heart_rate IS NOT NULL
+ORDER BY hr_rank
+LIMIT 10;
+"""
+
+df_rank = pd.read_sql(rank_query, engine, parse_dates = ["day"])
+st.dataframe(df_rank, hide_index = True)
