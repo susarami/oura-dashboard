@@ -39,6 +39,12 @@ class DailyReadiness(Base):
     sleep_regularity = Column(Integer)
     resting_heart_rate = Column(Integer)
 
+class WorkShift(Base):
+    __tablename__ = 'work_shifts'
+    day = Column(Date, primary_key=True)
+    hours_worked = Column(Float)
+    tip_amount = Column(Float)
+    hourly_wage = Column(Float)
 
 def get_engine():
     os.makedirs("data", exist_ok=True)
