@@ -11,12 +11,20 @@ sleep_df = pd.read_sql("SELECT * FROM daily_sleep", engine)
 sleep_df = sleep_df.rename(columns={"score": "sleep_score"})
 sleep_df["day"] = pd.to_datetime(sleep_df["day"])
 
+work_shifts_df = pd.read_sql("SELECT * FROM work_shifts", engine)
+work_shifts_df["day"] = pd.to_datetime(work_shifts_df["day"])
+
+worked_days = set(work_shifts_df["day"].dt.date)
+print(len(worked_days))
+
+print(work_shifts_df.head())
+
 def is_previous_day_workday(day):
     previous_day = day - timedelta(days=1)
-    return previous_day.weekday() in {1, 5, 6}
+    return previous_day.date() in worked_days
 
 def is_workday(day):
-    return day.weekday() in {1, 5, 6}
+    return day.date() in worked_days
 
 def was_sick(day):
     range1 = day >= pd.Timestamp("2025-08-11") and day <= pd.Timestamp("2025-08-23")
@@ -31,7 +39,6 @@ def consecutive_workdays_before(day):
 
 sleep_df["worked_previous_day"] = sleep_df["day"].apply(is_previous_day_workday)
 sleep_df["score_7day_avg"] = sleep_df["sleep_score"].rolling(window = 7).mean()
-
 
 st.header("Sleep Score Rolling 7 Day Average")
 st.line_chart(sleep_df.set_index("day")[["sleep_score", "score_7day_avg"]])
