@@ -27,9 +27,9 @@ def fetch_oura_data(endpoint, start_date, end_date, token):
 
     return response.json().get("data")
 
-sleep_records = fetch_oura_data("daily_sleep", "2025-07-01", "2026-07-01", token)
-readiness_records = fetch_oura_data("daily_readiness", "2025-07-01", "2026-07-01", token)
-activity_records = fetch_oura_data("daily_activity", "2025-07-01", "2026-07-01", token)
+sleep_records = fetch_oura_data("daily_sleep", "2025-07-17", "2026-08-09", token)
+readiness_records = fetch_oura_data("daily_readiness", "2025-07-17", "2026-08-09", token)
+activity_records = fetch_oura_data("daily_activity", "2025-07-17", "2026-08-09", token)
 
 Session = sessionmaker(bind=engine)
 session = Session()

@@ -15,9 +15,9 @@ work_shifts_df = pd.read_sql("SELECT * FROM work_shifts", engine)
 work_shifts_df["day"] = pd.to_datetime(work_shifts_df["day"])
 
 worked_days = set(work_shifts_df["day"].dt.date)
-print(len(worked_days))
 
-print(work_shifts_df.head())
+csv_start = work_shifts_df["day"].min()
+csv_end = work_shifts_df["day"].max()
 
 def is_previous_day_workday(day):
     previous_day = day - timedelta(days=1)
@@ -37,6 +37,7 @@ def consecutive_workdays_before(day):
     two_day_back = day - timedelta(days=2)
     return is_workday(one_day_back) + is_workday(two_day_back)
 
+sleep_df = sleep_df[(sleep_df["day"] >= csv_start) & (sleep_df["day"] <= csv_end)]
 sleep_df["worked_previous_day"] = sleep_df["day"].apply(is_previous_day_workday)
 sleep_df["score_7day_avg"] = sleep_df["sleep_score"].rolling(window = 7).mean()
 
@@ -57,6 +58,7 @@ sleep_t_stat, sleep_p_value = stats.ttest_ind(sleep_worked, sleep_rested)
 activity_df = pd.read_sql("SELECT * FROM daily_activity", engine)
 activity_df = activity_df.rename(columns={"score": "activity_score"})
 activity_df["day"] = pd.to_datetime(activity_df["day"])
+activity_df = activity_df[(activity_df["day"] >= csv_start) & (activity_df["day"] <= csv_end)]
 activity_df["worked_previous_day"] = activity_df["day"].apply(is_previous_day_workday)
 activity_df["was_sick"] = activity_df["day"].apply(was_sick)
 activity_df.loc[activity_df["was_sick"], "activity_score"] = pd.NA
@@ -78,6 +80,7 @@ activity_t_stat, activity_p_value = stats.ttest_ind(activity_worked, activity_re
 readiness_df = pd.read_sql("SELECT * FROM daily_readiness", engine)
 readiness_df = readiness_df.rename(columns={"score": "readiness_score"})
 readiness_df["day"] = pd.to_datetime(readiness_df["day"])
+readiness_df = readiness_df[(readiness_df["day"] >= csv_start) & (readiness_df["day"] <= csv_end)]
 readiness_df["worked_previous_day"] = readiness_df["day"].apply(is_previous_day_workday)
 
 readiness_df["score_7day_avg"] = readiness_df["readiness_score"].rolling(window = 7).mean()
