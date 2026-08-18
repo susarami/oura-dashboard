@@ -15,9 +15,14 @@ work_shifts_df = pd.read_sql("SELECT * FROM work_shifts", engine)
 work_shifts_df["day"] = pd.to_datetime(work_shifts_df["day"])
 
 worked_days = set(work_shifts_df["day"].dt.date)
+tips_by_day = work_shifts_df.set_index(work_shifts_df["day"].dt.date)["tip_amount"].to_dict()
+
 
 csv_start = work_shifts_df["day"].min()
 csv_end = work_shifts_df["day"].max()
+
+def tip_amount_same_day(day):
+    return tips_by_day.get(day.date())
 
 def is_previous_day_workday(day):
     previous_day = day - timedelta(days=1)
@@ -38,7 +43,7 @@ def consecutive_workdays_before(day):
     return is_workday(one_day_back) + is_workday(two_day_back)
 
 def format_test_caption(test_name, stat_label, stat_value, p_value):
-    return f"{test_name}: {stat_label} = {stat_value:.2f}, p = {p_value:.6f}"
+    return f"{test_name}: {stat_label} = {stat_value:.2f}, p = {p_value:.2e}"
 
 
 sleep_df = sleep_df[(sleep_df["day"] >= csv_start) & (sleep_df["day"] <= csv_end)]
@@ -251,3 +256,16 @@ LIMIT 10;
 
 df_rank = pd.read_sql(rank_query, engine, parse_dates = ["day"])
 st.dataframe(df_rank, hide_index = True)
+
+tips_df = activity_df[["day", "steps"]].copy()
+tips_df["tip_amount_same_day"] = tips_df["day"].apply(tip_amount_same_day)
+tips_df_clean = tips_df.dropna(subset=["tip_amount_same_day"])
+corr, p_value = stats.pearsonr(tips_df_clean["tip_amount_same_day"], tips_df_clean["steps"])
+print(format_test_caption("Pearson Correlation Coefficient", "r", corr, p_value))
+
+st.header("Tip Amount vs. Same-Day Steps")
+fig = px.scatter(tips_df_clean, x = "tip_amount_same_day", y = "steps", trendline = "ols")
+st.plotly_chart(fig)
+st.caption(format_test_caption("Pearson Correlation Coefficient", "r", corr, p_value))
+
+print(tips_df_clean[(tips_df_clean["steps"] < 2000) & (tips_df_clean["tip_amount_same_day"] > 150)])
