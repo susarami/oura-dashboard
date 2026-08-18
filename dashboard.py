@@ -37,6 +37,10 @@ def consecutive_workdays_before(day):
     two_day_back = day - timedelta(days=2)
     return is_workday(one_day_back) + is_workday(two_day_back)
 
+def format_test_caption(test_name, stat_label, stat_value, p_value):
+    return f"{test_name}: {stat_label} = {stat_value:.2f}, p = {p_value:.6f}"
+
+
 sleep_df = sleep_df[(sleep_df["day"] >= csv_start) & (sleep_df["day"] <= csv_end)]
 sleep_df["worked_previous_day"] = sleep_df["day"].apply(is_previous_day_workday)
 sleep_df["score_7day_avg"] = sleep_df["sleep_score"].rolling(window = 7).mean()
@@ -106,7 +110,7 @@ col1, col2 = st.columns(2)
 col1.metric("Sleep Efficiency - After Day Off", f"{rested_score:.1f}")
 col2.metric("Sleep Efficiency - After Work Day", f"{worked_score:.1f}", delta = f"{worked_score - rested_score:.1f}")
 st.bar_chart(sleep_means)
-st.caption(f"t-test: t = {sleep_t_stat:.2f}, p = {sleep_p_value:.6f}")
+st.caption(format_test_caption("t-test", "t", sleep_t_stat, sleep_p_value))
 
 st.header("Activity")
 activity_means = activity_df.groupby("worked_previous_day")["recovery_time"].mean()
@@ -117,7 +121,7 @@ col3, col4 = st.columns(2)
 col3.metric("Recovery Time - After Day Off", f"{rested_score:.1f}")
 col4.metric("Recovery Time - After Work Day", f"{worked_score:.1f}", delta = f"{worked_score - rested_score:.1f}")
 st.bar_chart(activity_means)
-st.caption(f"t-test: t = {activity_t_stat:.2f}, p = {activity_p_value:.6f}")
+st.caption(format_test_caption("t-test", "t", activity_t_stat, activity_p_value))
 
 st.header("Readiness")
 readiness_means = readiness_df.groupby("worked_previous_day")["resting_heart_rate"].mean()
@@ -128,7 +132,7 @@ col5, col6 = st.columns(2)
 col5.metric("Resting Heart Rate - After Day Off", f"{rested_score:.1f}")
 col6.metric("Resting Heart Rate - After Work Day", f"{worked_score:.1f}", delta = f"{worked_score - rested_score:.1f}")
 st.bar_chart(readiness_means)
-st.caption(f"t-test: t = {readiness_t_stat:.2f}, p = {readiness_p_value:.6f}")
+st.caption(format_test_caption("t-test", "t", readiness_t_stat, readiness_p_value))
 
 
 combined_df = sleep_df.merge(readiness_df, on = "day")
@@ -195,8 +199,7 @@ col1.metric("0 Consecutive Work Days", f"{compounded_means[0]:.1f}")
 col2.metric("1 Consecutive Work Days", f"{compounded_means[1]:.1f}", delta = f"{compounded_means.loc[1] - compounded_means[0]:.1f}")
 col2.metric("2 Consecutive Work Days", f"{compounded_means[2]:.1f}", delta = f"{compounded_means.loc[2] - compounded_means[1]:.1f}")
 st.bar_chart(compounded_means)
-st.caption(f"One-way ANOVA: t = {combined_f_stat:.2f}, p = {combined_p_value:.6f}")
-
+st.caption(format_test_caption("One-way ANOVA", "F", combined_f_stat, combined_p_value))
 sleep_df.to_csv("sleep_df.csv", index = False)
 activity_df.to_csv("activity_df.csv", index = False)
 readiness_df.to_csv("readiness_df.csv", index = False)
